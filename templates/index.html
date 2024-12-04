@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style Matcher</title>
+    <style>
+        /* General Styling */
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #141e30, #dd2476);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Container Styling */
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        h1 {
+            margin-bottom: 25px;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .file-input {
+            margin: 20px 0;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 12px 25px;
+            border: 2px dashed #555;
+            border-radius: 8px;
+            background: #1c1c1c;
+            color: #fff;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .file-label:hover {
+            background: #333;
+            border-color: #feb47b;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: #feb47b;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(to right, #ff512f, #dd2476);
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: linear-gradient(to right, #dd2476, #ff512f);
+            transform: scale(1.05);
+        }
+
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-container img {
+            max-width: 200px;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s;
+        }
+
+        .image-container img:hover {
+            transform: scale(1.05);
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50px;
+        }
+
+        .loading div {
+            width: 12px;
+            height: 12px;
+            margin: 0 3px;
+            background: #feb47b;
+            border-radius: 50%;
+            animation: bounce 0.6s infinite alternate;
+        }
+
+        .loading div:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading div:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(-15px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Style Matcher</h1>
+        <form id="uploadForm">
+            <div class="file-input">
+                <input type="file" id="imageInput" accept="image/*" required>
+                <label for="imageInput" class="file-label">Choose Image</label>
+                <div id="fileName" class="file-name"></div>
+            </div>
+            <button type="submit">Find Matches</button>
+        </form>
+        <div class="loading" id="loading" style="display: none;">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <div class="image-container" id="results">
+            <div id="inputImageContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('imageInput').addEventListener('change', function(event) {
+            const fileName = document.getElementById('fileName');
+            fileName.textContent = event.target.files[0].name;
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const imageInput = document.getElementById('imageInput');
+            const resultsDiv = document.getElementById('results');
+            const inputImageContainer = document.getElementById('inputImageContainer');
+            const loadingDiv = document.getElementById('loading');
+
+            resultsDiv.innerHTML = ""; // Clear previous results
+            loadingDiv.style.display = "flex"; // Show loading animation
+
+            // Display input image
+            const inputImg = document.createElement('img');
+            inputImg.src = URL.createObjectURL(imageInput.files[0]);
+            inputImg.alt = "Input Image";
+            inputImageContainer.innerHTML = ''; // Clear previous input image
+            inputImageContainer.appendChild(inputImg);
+
+            const formData = new FormData();
+            formData.append('image', imageInput.files[0]);
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/match', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch results');
+                }
+
+                const data = await response.json();
+                loadingDiv.style.display = "none"; // Hide loading animation
+
+                data.matches.forEach(match => {
+                    const img = document.createElement('img');
+                    img.src = match.path;
+                    img.alt = `Score: ${match.score}`;
+                    resultsDiv.appendChild(img);
+                });
+
+            } catch (error) {
+                loadingDiv.style.display = "none"; // Hide loading animation
+                resultsDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
